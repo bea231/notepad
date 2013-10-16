@@ -3,172 +3,228 @@
 #include <string>
 #include <stdio.h>
 #include "textview.h"
+#include "resource.h"
 
 /* Default class constructor */
-task2::textview::textview( int CmdShow, char *CmdLine, HINSTANCE hInst, char *WindowName ) : LinesInPage(0)
+notepad::textview::textview( int cmdShow, char *cmdLine, HINSTANCE hInst, char *windowName ) : scrollX(0), scrollY(0)
 {
-  this->CmdShow = CmdShow;
-  this->CmdLine = CmdLine;
-
-  if (strlen(CmdLine) > 0 )
+  if (strlen(cmdLine) > 0 )
   {
-    char TextFileName[MAX_PATH];
+    char textFileName[MAX_PATH];
 
-    sscanf(CmdLine, "%s", TextFileName);
-    Buffer.Init(TextFileName);
+    sscanf(cmdLine, "%s", textFileName);
+    buffer.Open((unsigned char *)textFileName);
   }
-  else
-    Buffer.Init(NULL);
 }
 
 /* Class destructor */
-task2::textview::~textview( void )
+notepad::textview::~textview( void )
 {
 }
 
-/* Initialization function.
- * ARGUMENTS: None.
- * RETURNS: None.
- */
-void task2::textview::Init( void )
+/* Initialization function */
+void notepad::textview::Init( void )
+{
+  TEXTMETRIC textMetric;
+
+  GetTextMetrics(hDC, &textMetric);
+  textHeight = textMetric.tmHeight;
+  textWidth = textMetric.tmMaxCharWidth;
+  SetMenu(hWnd, LoadMenu(hInstance, (char *)TEXT(IDR_MENU)));
+}
+
+/* Deinitialization function */
+void notepad::textview::Close( void )
 {
 }
 
-/* Deinitialization function.
- * ARGUMENTS: None.
- * RETURNS: None.
- */
-void task2::textview::Close( void )
+/* Change window size handle function */
+void notepad::textview::Resize( void )
+{
+  stringsInPage = height / textHeight;
+  charsInPage = width / textWidth;
+
+  UpdateScrollBar();
+}
+
+/* Erase background handle function */
+void notepad::textview::Erase( void )
 {
 }
 
-/* Change window size handle function.
- * ARGUMENTS: None.
- * RETURNS: None.
- */
-void task2::textview::Resize( void )
+/* Paint window content function */
+void notepad::textview::Paint( void )
 {
-  TEXTMETRIC text_metric;
-  HDC hDC;
+  unsigned char *ptr1, *ptr2;
+  unsigned int currentY;
 
-  hDC = GetDC(hWnd);
-  GetTextMetrics(hDC, &text_metric);
-  LinesInPage = Height / text_metric.tmHeight + 1;
-  ReleaseDC(hWnd, hDC);
-}
-
-/* Erase background handle function.
- * ARGUMENTS:
- *   - device context of client area:
- *       HDC hDC;
- * RETURNS: None.
- */
-void task2::textview::Erase( HDC hDC )
-{
-  HPEN hOldPen = (HPEN)SelectObject(hDC, GetStockObject(NULL_PEN));
-  HBRUSH hOldBrush = (HBRUSH)SelectObject(hDC, GetStockObject(WHITE_BRUSH));
-
-  /* Default action - draw white rectangle */
-  Rectangle(hDC, 0, 0, Width + 1, Height + 1);
-  SelectObject(hDC, hOldPen);
-  SelectObject(hDC, hOldBrush);
-}
-
-/* Paint window content function.
- * ARGUMENTS:
- *   - device context of client area:
- *       HDC hDC;
- * RETURNS: None.
- */
-void task2::textview::Paint( HDC hDC )
-{
-  TEXTMETRIC text_metric;
-  int cur_y = 0;
-  char *ptr, *ptr2;
-
-  GetTextMetrics(hDC, &text_metric);
-
-  ptr = Buffer.GetFirstBeginPtr();
-  ptr2 = Buffer.GetEndPtr();
-
-  for (cur_y = 0; cur_y < Height + text_metric.tmHeight && Buffer.HaveStrings(); cur_y += text_metric.tmHeight)
+  ptr1 = buffer.Begin();
+  ptr2 = buffer.End();
+  for (currentY = 0; (currentY < height + textHeight) && buffer.HaveStrings(); currentY += textHeight)
   {
-    TextOut(hDC, 0, cur_y, ptr, ptr2 - ptr + 1);
-    ptr = Buffer.GetBeginPtr();
-    ptr2 = Buffer.GetEndPtr();
+    TextOut(hDC, 0, currentY, (char *)ptr1, ptr2 - ptr1);
+    ptr1 = buffer.Next();
+    ptr2 = buffer.End();
   }
+
 }
 
-/* Activate handle function.
- * ARGUMENTS:
- *   - activation window flag:
- *       BOOL IsActive;
- * RETURNS: None.
- */
-void task2::textview::Activate( BOOL IsActive )
-{
-}
-
-/* Timer handle function
- * ARGUMENTS: None.
- * RETURNS: None.
- */
-void task2::textview::Timer( void )
-{
-}
-
-/* Free CPU time handling function.
- * ARGUMENTS: None.
- * RETURNS: None.
- */
-void task2::textview::Idle( void )
-{
-}
-
-/* Keyboard state function.
- * ARGUMENTS:
- *   - virtual key identifier:
- *       unsigned int vk;
- * RETURNS: None.
- */
-void task2::textview::Key( unsigned int vk, bool fDown )
+/* Keyboard state handle function */
+void notepad::textview::Key(unsigned int vk, bool fDown, int cRepeat, unsigned int flags)
 {
   if (fDown)
   {
     switch (vk)
     {
     case VK_LEFT:
-      Buffer.ShiftX(-1);
+      buffer.ShiftX(-1);    // shift left 
       break;
     case VK_RIGHT:
-      Buffer.ShiftX(1);
+      buffer.ShiftX(1);     // shift right
       break;
     case VK_DOWN:
-      Buffer.ShiftY(1);
+      buffer.ShiftY(1);     // shift down
       break;
     case VK_UP:
-      Buffer.ShiftY(-1);
+      buffer.ShiftY(-1);    // shift up
       break;
     case VK_NEXT:
-      Buffer.ShiftY(LinesInPage - 1);
+      buffer.ShiftY(stringsInPage);  // shift page down
       break;
     case VK_PRIOR:
-      Buffer.ShiftY(-LinesInPage + 1);
+      buffer.ShiftY(-(long)stringsInPage); // shift page up
       break;
     }
   }
-  InvalidateRect(hWnd, NULL, TRUE);
+  UpdateScrollBar();
+  InvalidateRect(hWnd, NULL, FALSE);
 }
 
-/* WM_MOUSEMOVE window message handle function.
- * ARGUMENTS:
- *   - new mouse coordinate:
- *       int x, y;
- *   - state mouse flags:
- *       unsigned int flags;
- * RETURNS:
- *   (BOOL) TRUE to continue creation window, FALSE to terminate.
- */
- void task2::textview::Mouse(int x, int y, unsigned int flags)
+/* WM_COMMAND window message handle function */
+void notepad::textview::Command(int id, HWND hwndCtl, UINT codeNotify)
  {
+   OPENFILENAME ofn = {0};
+   unsigned char fileName[MAX_PATH] = {0};
+
+   switch(id)
+   {
+   case ID_FILE_EXIT:
+     SendMessage(hWnd, WM_DESTROY, 0, 0);
+     break;
+   case ID_MYFILE_OPEN:
+     ofn.lStructSize = sizeof(OPENFILENAME);
+     ofn.hwndOwner = hWnd;
+     ofn.lpstrFile = (char *)fileName;
+     ofn.nMaxFile = MAX_PATH;
+     ofn.lpstrFilter = "All\0*.*\0Text files\0*.txt\0";
+     ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
+
+     if (GetOpenFileName(&ofn) == TRUE)
+     {
+       buffer.Close();
+       buffer.Open(fileName);
+     }
+     UpdateScrollBar();
+     break;
+   case ID_FILE_ABOUT:
+     MessageBox(hWnd, "Sergeev Artemiy\n"
+                      "       33601/2", "About", MB_OK | MB_ICONINFORMATION);
+     break;
+   }
+   InvalidateRect(hWnd, NULL, FALSE);
  }
+
+/* WM_HSCROLL window message handle function */
+void notepad::textview::HScroll(HWND hwndCtl, UINT code, int pos)
+{
+  SCROLLINFO scrollInfo;
+
+  scrollInfo.cbSize = sizeof(SCROLLINFO);
+  switch (code)
+  {
+  case SB_PAGELEFT:
+    buffer.ShiftX(-(long)charsInPage);
+    break;
+  case SB_PAGERIGHT:
+    buffer.ShiftX(charsInPage);
+    break;
+  case SB_THUMBTRACK:
+    scrollInfo.fMask = SIF_POS;
+    GetScrollInfo(hWnd, SB_HORZ, &scrollInfo);
+    buffer.ShiftX(pos - scrollInfo.nPos);
+    break;
+  case SB_LINERIGHT:
+    buffer.ShiftX(1);
+    break;
+  case SB_LINELEFT:
+    buffer.ShiftX(-1);
+    break;
+  }
+  InvalidateRect(hWnd, NULL, FALSE);
+  UpdateScrollBar();
+}
+
+/* WM_VSCROLL window message handle function */
+void notepad::textview::VScroll(HWND hwndCtl, UINT code, int pos)
+{
+  SCROLLINFO scrollInfo;
+
+  scrollInfo.cbSize = sizeof(SCROLLINFO);
+  switch (code)
+  {
+  case SB_PAGEUP:
+    buffer.ShiftY(-(long)stringsInPage);
+    break;
+  case SB_PAGEDOWN:
+    buffer.ShiftY(stringsInPage);
+    break;
+  case SB_THUMBTRACK:
+    scrollInfo.fMask = SIF_POS;
+    GetScrollInfo(hWnd, SB_VERT, &scrollInfo);
+    buffer.ShiftY(pos - scrollInfo.nPos);
+    break;
+  case SB_LINEDOWN:
+    buffer.ShiftY(1);
+    break;
+  case SB_LINEUP:
+    buffer.ShiftY(-1);
+    break;
+  }
+  InvalidateRect(hWnd, NULL, FALSE);
+  UpdateScrollBar();
+}
+/* Set new position, hide or show scrollbar function */
+void notepad::textview::UpdateScrollBar( void )
+{
+  SCROLLINFO scrollInfo;
+
+  if (stringsInPage < buffer.GetStringsCount())
+  {
+    ShowScrollBar(hWnd, SB_VERT, TRUE);
+
+    scrollInfo.cbSize = sizeof(SCROLLINFO);
+    scrollInfo.fMask = SIF_PAGE | SIF_RANGE;
+    scrollInfo.nMin = 0;
+    scrollInfo.nMax = buffer.GetStringsCount() + stringsInPage - 3;
+    scrollInfo.nPage = stringsInPage;
+    SetScrollInfo(hWnd, SB_VERT, &scrollInfo, TRUE);
+
+    SetScrollPos(hWnd, SB_VERT, buffer.GetCurrentString(), TRUE);
+  }
+  else
+    ShowScrollBar(hWnd, SB_VERT, FALSE);
+
+  if (charsInPage < buffer.GetMaxStringLength())
+  {
+    ShowScrollBar(hWnd, SB_HORZ, TRUE);
+
+    scrollInfo.nMin = 0;
+    scrollInfo.nMax = buffer.GetMaxStringLength() + charsInPage - 3;
+    scrollInfo.nPage = charsInPage;
+    SetScrollInfo(hWnd, SB_HORZ, &scrollInfo, TRUE);
+
+    SetScrollPos(hWnd, SB_HORZ, buffer.GetCurrentCharacter(), TRUE);
+  }
+  else
+    ShowScrollBar(hWnd, SB_HORZ, FALSE);
+}

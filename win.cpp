@@ -1,10 +1,10 @@
-/* Sergeev Artemiy, 33602 (3057/2) */
+/* Sergeev Artemiy, 33601/2 (3057/2) */
 
-#include "winmsgx.h"
 #include "win.h"
+#include "winmsgx.h"
 
 /* Class constructor */
-task2::win::win( int CmdShow, char *CmdLine, HINSTANCE hInst, char *WindowName ) : IsInit(FALSE), CmdLine(CmdLine), CmdShow(CmdShow)
+notepad::win::win( HINSTANCE hInst, int cmdShow ) : isInit(FALSE)
 {
   WNDCLASS wc;
 
@@ -18,12 +18,12 @@ task2::win::win( int CmdShow, char *CmdLine, HINSTANCE hInst, char *WindowName )
   wc.cbClsExtra = 0;
   wc.cbWndExtra = sizeof(void *);
   wc.hbrBackground = (HBRUSH)GetStockObject(WHITE_BRUSH);
-  wc.hCursor = LoadCursor(NULL, (CHAR *)IDC_ARROW);
-  wc.hIcon = LoadIcon(NULL, (CHAR *)IDI_APPLICATION);
+  wc.hCursor = LoadCursor(NULL, (char *)IDC_ARROW);
+  wc.hIcon = LoadIcon(NULL, (char *)IDI_APPLICATION);
   wc.lpszMenuName = NULL;
   wc.hInstance = hInstance;
   wc.lpfnWndProc = WinFuncCallBack;
-  wc.lpszClassName = MainWndClassName;
+  wc.lpszClassName = c_MainWndClassName;
   if (!RegisterClass(&wc))
   {
     MessageBox(NULL, "Error register window class", "ERROR",
@@ -32,8 +32,8 @@ task2::win::win( int CmdShow, char *CmdLine, HINSTANCE hInst, char *WindowName )
   }
 
   /* Window creation */
-  hWnd = CreateWindow(MainWndClassName,
-    WindowName,
+  hWnd = CreateWindow(c_MainWndClassName,
+    "Notepad",
     WS_OVERLAPPEDWINDOW | WS_VSCROLL | WS_HSCROLL,
     CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
     NULL, NULL, hInstance, (void *)this);
@@ -41,22 +41,18 @@ task2::win::win( int CmdShow, char *CmdLine, HINSTANCE hInst, char *WindowName )
   {
     MessageBox(NULL, "Error create window", "ERROR",
       MB_OK | MB_ICONSTOP);
-    return;
+    exit(0);
   }
   /* Show and update window */
-  ShowWindow(hWnd, CmdShow);
+  ShowWindow(hWnd, cmdShow);
   UpdateWindow(hWnd);
 
   /* Send initialization timer message */
-  PostMessage(hWnd, WM_TIMER, (WPARAM)InitializationTimerId, 0);
-} /* End of 'task2::win::win' constructor */
+  PostMessage(hWnd, WM_TIMER, (WPARAM)c_initializationTimer, 0);
+}
 
-/* Windowed application running function.
- * ARGUMENTS: None.
- * RETURNS:
- *   (int) error level.
- */
-int task2::win::Run( void )
+/* Windowed application running function */
+int notepad::win::Run( void )
 {
   MSG msg;
 
@@ -71,42 +67,34 @@ int task2::win::Run( void )
       DispatchMessage(&msg);
     }
     else
-      if (IsInit)
+      if (isInit)
         Idle();
   }
   return msg.wParam;
-} /* End of 'task2::win::Run' function */
+}
 
 /* Class destructor */
-task2::win::~win( void )
+notepad::win::~win( void )
 {
-} /* End of 'task2::win::~win' destructor */
+}
 
-/* System exit function.
- * ARGUMENTS: None.
- * RETURNS: None.
- */
-void task2::win::DoExit( void )
+/* System exit function */
+void notepad::win::DoExit( void )
 {
   PostMessage(hWnd, WM_CLOSE, 0, 0);
-} /* End of 'task2::win::DoExit' destructor */
+}
 
-/* The set full screen application mode.
- * ARGUMENTS:
- *   - is full screen flag:
- *       BOOL IsFullScreen;
- * RETURNS: None.
- */
-void task2::win::SetFullScreen( BOOL IsFull )
+/* The set full screen application mode */
+void notepad::win::SetFullScreen( bool IsFull )
 {
   RECT rc;
   DWORD Style;
 
-  if (IsFull == IsFullScreen)
+  if (IsFull == isFullScreen)
     return;
-  if ((IsFullScreen = IsFull) != FALSE)
+  if ((isFullScreen = IsFull) != FALSE)
   {
-    GetWindowRect(hWnd, &SaveRC);
+    GetWindowRect(hWnd, &saveRC);
     rc.left = 0;
     rc.top = 0;
     rc.right = GetSystemMetrics(SM_CXSCREEN);
@@ -117,207 +105,169 @@ void task2::win::SetFullScreen( BOOL IsFull )
       SWP_NOOWNERZORDER | SWP_NOREDRAW | SWP_NOSENDCHANGING);
   }
   else
-  {
-    SetWindowPos(hWnd, HWND_TOP, SaveRC.left, SaveRC.top, SaveRC.right - SaveRC.left, SaveRC.bottom - SaveRC.top,
+  {     
+    SetWindowPos(hWnd, HWND_TOP, saveRC.left, saveRC.top, saveRC.right - saveRC.left, saveRC.bottom - saveRC.top,
       SWP_NOOWNERZORDER | SWP_NOSENDCHANGING);
   }
-} /* End of 'task2::win::SetFullScreen' function */
+}
 
 /* Window message handle function (CALLBACK version) */
-LRESULT CALLBACK task2::win::WinFuncCallBack( HWND hWnd, unsigned int Msg, WPARAM wParam, LPARAM lParam )
+LRESULT CALLBACK notepad::win::WinFuncCallBack( HWND hWnd, unsigned int msg, WPARAM wParam, LPARAM lParam )
 {
   win *Win;
 
-  switch (Msg)
+  switch (msg)
   {
   case WM_CREATE:
-    /* Attach 'this' pointer to window class to window */
-    SetWindowLong(hWnd, 0, (LONG)((CREATESTRUCT *)lParam)->lpCreateParams);
+    {
+      /* Attach 'this' pointer to window class to window */
+      notepad::win *myThis = (notepad::win *)((CREATESTRUCT *)lParam)->lpCreateParams;
+
+      SetWindowLong(hWnd, 0, (LONG)myThis);
+      myThis->OnCreate(hWnd, (CREATESTRUCT *)lParam);
+    }
   default:
     Win = (win *)GetWindowLong(hWnd, 0);
     if (Win != NULL)
-      return Win->WinFunc(Msg, wParam, lParam);
+      return Win->WinFunc(msg, wParam, lParam);
   }
-  return DefWindowProc(hWnd, Msg, wParam, lParam);
-} /* End of 'task2::win::WinFuncCallBack' function */
+  return DefWindowProc(hWnd, msg, wParam, lParam);
+}
 
 /* Window handle message (with crack message calls) */
-LRESULT task2::win::WinFunc( unsigned int Msg, WPARAM wParam, LPARAM lParam )
+LRESULT notepad::win::WinFunc( unsigned int msg, WPARAM wParam, LPARAM lParam )
 {
-  switch (Msg)
+  switch (msg)
   {
-  HANDLE_MSG(WM_CREATE, OnCreate);
   HANDLE_MSG(WM_SIZE, OnSize);
   HANDLE_MSG(WM_ACTIVATE, OnActivate);
   HANDLE_MSG(WM_ERASEBKGND, OnEraseBkgnd);
   HANDLE_MSG(WM_PAINT, OnPaint);
   HANDLE_MSG(WM_TIMER, OnTimer);
-  HANDLE_MSG(WM_KEYDOWN, OnKey);
+  HANDLE_MSG(WM_DESTROY, OnClose);
   HANDLE_MSG(WM_CLOSE, OnClose);
-  HANDLE_MSG(WM_MOUSEMOVE, OnMouseMove);
-  //HANDLE_MSG(WM_DESTROY, OnDestroy);
-  //HANDLE_MSG(WM_KEYUP, OnKey);
-  //HANDLE_MSG(WM_CHAR, OnChar);
-  //HANDLE_MSG(WM_LBUTTONDOWN, OnLButtonDown);
-  //HANDLE_MSG(WM_LBUTTONDBLCLK, OnLButtonDown);
-  //HANDLE_MSG(WM_LBUTTONUP, OnLButtonUp);
-  //HANDLE_MSG(WM_RBUTTONDOWN, OnRButtonDown);
-  //HANDLE_MSG(WM_RBUTTONDBLCLK, OnRButtonDown);
-  //HANDLE_MSG(WM_RBUTTONUP, OnRButtonUp);
-  //HANDLE_MSG(WM_MBUTTONDOWN, OnMButtonDown);
-  //HANDLE_MSG(WM_MBUTTONDBLCLK, OnMButtonDown);
-  //HANDLE_MSG(WM_MBUTTONUP, OnMButtonUp);
-  //HANDLE_MSG(WM_MOUSEWHEEL, OnMouseWheel);
-  //HANDLE_MSG(WM_SETCURSOR, OnSetCursor);
-  //HANDLE_MSG(WM_SYSCOMMAND, OnSysCommand);
+  HANDLE_MSG(WM_KEYDOWN, Key);
+  HANDLE_MSG(WM_KEYUP, Key);
+  HANDLE_MSG(WM_MOUSEMOVE, MouseMove);
+  HANDLE_MSG(WM_COMMAND, Command);
+  HANDLE_MSG(WM_VSCROLL, VScroll);
+  HANDLE_MSG(WM_HSCROLL, HScroll);
   }
-  return DefWindowProc(hWnd, Msg, wParam, lParam);
-} /* End of 'task2::win::WinFunc' function */
+  return DefWindowProc(hWnd, msg, wParam, lParam);
+}
 
-/* WM_CREATE window message handle function.
- * ARGUMENTS:
- *   - structure with creation data:
- *       CREATESTRUCT *CS;
- * RETURNS:
- *   (BOOL) TRUE to continue creation window, FALSE to terminate.
- */
-BOOL task2::win::OnCreate( CREATESTRUCT *CS )
+/* WM_CREATE window message handle function */
+bool notepad::win::OnCreate( HWND hWnd, CREATESTRUCT *createStruct )
 {
+  HDC hDC;
+
+  /* Create second frame buffer */
+  hDC = ::GetDC(hWnd);
+  this->hDC = CreateCompatibleDC(hDC);
+  hBm = CreateCompatibleBitmap(hDC, 10, 10);
+  SelectObject(this->hDC, hBm);
+  ReleaseDC(hWnd, hDC);
+
+  SetTimer(hWnd, 1110111, 5, NULL);
+
+  isFullScreen = FALSE;
   return TRUE;
-} /* End of 'task2::win::OnCreate' function */
+}
 
-/* WM_DESTROY window message handle function.
- * ARGUMENTS: None.
- * RETURNS: None.
- */
-void task2::win::OnClose( void )
-{
+/* WM_DESTROY window message handle function */
+void notepad::win::OnClose( void )
+{  
+  KillTimer(hWnd, 1110111);
+  ReleaseDC(hWnd, hDC);
+  DeleteObject(hBm);
   /* Call user level deinitialization */
-  if (IsInit)
+  if (isInit)
   {
-    IsInit = FALSE;
+    isInit = FALSE;
     Close();
   }
   PostQuitMessage(0);
-} /* End of 'task2::win::OnDestroy' function */
+}
 
-/* WM_SIZE window message handle function.
- * ARGUMENTS:
- *   - sizing flag (see SIZE_***, like SIZE_MAXIMIZED)
- *       unsigned int State;
- *   - new width and height of client area:
- *       int W, H;
- * RETURNS: None.
- */
-void task2::win::OnSize( unsigned int State, int W, int H )
+/* WM_SIZE window message handle function */
+void notepad::win::OnSize( unsigned int state, int newWidth, int newHeight )
 {
-  Width = W;
-  Height = H;
+  width = newWidth;
+  height = newHeight;
+
+  HDC hDC;
+  /* Delete old second frame buffer */
+  DeleteObject(hBm);
+  /* Create new frame buffer */
+  hDC = ::GetDC(hWnd);
+  hBm = CreateCompatibleBitmap(hDC, width, height);
+  ReleaseDC(hWnd, hDC);
+  SelectObject(this->hDC, hBm);
+
   /* Call user level change size notifivcation */
-  if (IsInit)
+  if (isInit)
     Resize();
   InvalidateRect(hWnd, NULL, FALSE);
-} /* End of 'task2::win::OnSize' function */
+} 
 
-/* WM_ERASEBKGND window message handle function.
- * ARGUMENTS:
- *   - device context of client area:
- *       HDC hDC;
- * RETURNS:
- *   (BOOL) TRUE if background is erased, FALSE otherwise.
- */
-BOOL task2::win::OnEraseBkgnd( HDC hDC )
+/* WM_ERASEBKGND window message handle function */
+bool notepad::win::OnEraseBkgnd( HDC hDC )
 {
   /* Call user level erase background function */
-  if (IsInit)
-    Erase(hDC);
+  if (isInit)
+    Erase();
   return FALSE;
-} /* End of 'task2::win::OnEraseBkgnd' function */
+} 
 
-/* WM_PAINT window message handle function.
- * ARGUMENTS: None.
- * RETURNS: None.
- */
-void task2::win::OnPaint( void )
+/* WM_PAINT window message handle function */
+void notepad::win::OnPaint( void )
 {
   HDC hDC;
   PAINTSTRUCT ps;
-
+  HPEN hOldPen = (HPEN)SelectObject(this->hDC, GetStockObject(NULL_PEN));
+  HBRUSH hOldBrush = (HBRUSH)SelectObject(this->hDC, GetStockObject(WHITE_BRUSH));
+ 
   hDC = BeginPaint(hWnd, &ps);
+
   /* Call user level paint window content function */
-  if (IsInit)
-    Paint(hDC);
-  EndPaint(hWnd, &ps);
-} /* End of 'task2::win::OnPaint' function */
-
-/* WM_ACTIVATE window message handle function.
- * ARGUMENTS:
- *   - reason (WA_CLICKACTIVE, WA_ACTIVE or WA_INACTIVE):
- *       unsigned int Reason;
- *   - handle of active window:
- *       HWND hWndActDeact;
- *   - minimized flag:
- *       BOOL IsMinimized;
- * RETURNS: None.
- */
-void task2::win::OnActivate( unsigned int Reason, HWND hWndActDeact, BOOL IsMinimized )
-{
-  IsActive = Reason == WA_CLICKACTIVE || Reason == WA_ACTIVE;
-  /* Call user level activate handle function */
-  if (IsInit)
-    Activate(Reason);
-} /* End of 'task2::win::OnActivate' function */
-
-/* WM_TIMER window message handle function.
- * ARGUMENTS:
- *   - specified the timer identifier.
- *       int Id;
- * RETURNS: None.
- */
-void task2::win::OnTimer( int Id )
-{
-  if (Id == InitializationTimerId)
+  if (isInit)
   {
-    IsInit = TRUE;
+    /* Default action - draw white rectangle */
+    Rectangle(this->hDC, 0, 0, width + 1, height + 1);
+    SelectObject(this->hDC, hOldPen);
+    SelectObject(this->hDC, hOldBrush);
+    Paint();
+  }
+  BitBlt(hDC, 0, 0, width, height, this->hDC, 0, 0, SRCCOPY);
+  EndPaint(hWnd, &ps);
+}
+
+/* WM_ACTIVATE window message handle function */
+void notepad::win::OnActivate( unsigned int reason, HWND hWndActDeact, bool isMinimized )
+{
+  isActive = reason == WA_CLICKACTIVE || reason == WA_ACTIVE;
+  /* Call user level activate handle function */
+  if (isInit)
+    Activate(reason != 0);
+}
+
+/* WM_TIMER window message handle function */
+void notepad::win::OnTimer( int id ) 
+{
+  if (id == c_initializationTimer)
+  {
+    isInit = TRUE;
     Init();
     Resize();
     InvalidateRect(hWnd, NULL, TRUE);
-    if (IsActive)
+    if (isActive)
       Activate(TRUE);
   }
   else
     /* Call user level timer handle function */
-    if (IsInit)
-      Timer();
-} /* End of 'task2::win::OnDestroy' function */
-
-/* WM_KEYDOWN window message handle function.
- * ARGUMENTS:
- *   - virtual key identyfier:
- *       unsigned int vk;
- *   - is button down:
- *       BOOL fDown;
- *   - count of pressing repeat:
- *       int cRepeate;
- *   - flags:
- *       unsigned int flags;
- * RETURNS: None.
- */
-void task2::win::OnKey(unsigned int vk, bool fDown, int cRepeat, unsigned int flags)
-{
-  Key(vk, fDown);
-} /* End of 'task2::win::OnCreate' function */
-
-/* WM_MOUSEMOVE window message handle function.
- * ARGUMENTS:
- *   - new mouse coordinate:
- *       int x, y;
- *   - state mouse flags:
- *       unsigned int flags;
- * RETURNS:
- *   (BOOL) TRUE to continue creation window, FALSE to terminate.
- */
-void task2::win::OnMouseMove(int x, int y, unsigned int flags)
-{
-  Mouse(x, y, flags);
-} /* End of 'task2::win::OnCreate' function */
+    if (isInit)
+    {
+      Timer(id);
+      InvalidateRect(hWnd, NULL, FALSE);
+    }
+}

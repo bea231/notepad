@@ -1,136 +1,152 @@
-/* Sergeev Artemiy, 33602 (3057/2) */
+/* Sergeev Artemiy, 33601/2 (3057/2) */
 
-#include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include "viewbuf.h"
 
-/* Default class constructor */
-task2::viewbuf::viewbuf( char *FileName ) : TextFile(NULL), TextBuf(NULL), shift_x(0), shift_y(0), cur_index(0), shift_index(0)
-{
-  if (FileName != NULL)
-    this->Init(FileName);
-}
-
-/* Class destructor */
-task2::viewbuf::~viewbuf( void )
-{
-  if (TextBuf)
-  {
-    free(TextBuf);
-    TextBuf = NULL;
-  }
-  if (TextFile)
-  {
-    fclose(TextFile);
-    TextFile = NULL;
-  }
-}
+const unsigned char notepad::viewbuf::defaultText[] = "File not found!";
 
 /* Initialite buffer from file function */
-void task2::viewbuf::Init( char *FileName )
+int notepad::viewbuf::Open( unsigned char *fileName )
 {
   unsigned long len;
+  FILE *textFile = NULL;
 
-  if (FileName != NULL)
-    TextFile = fopen(FileName, "rt");
-  if (TextFile == NULL)
+  if (fileName != NULL)
+    textFile = fopen((char *)fileName, "rt");
+  if (textFile == NULL)
   {
-    len = strlen(_FILE_ERR_TEXT);
-    TextBuf = (char *)malloc(sizeof(char) * (len + 1));
-    strncpy(TextBuf, _FILE_ERR_TEXT, len);
-    TextBuf[len] = 0;
-    TextBufSize = len + 1;
-    LinesCount = 1;
-    return;
-  }
-  fseek(TextFile, 0, SEEK_END);
-  len = ftell(TextFile);
-  fseek(TextFile, 0, SEEK_SET);
+    /* Default text value */
+    maxStringLength = len = strlen((char *)notepad::viewbuf::defaultText);
+    buffer = (unsigned char *)malloc(sizeof(unsigned char) * (len + 1));
+    strncpy((char *)buffer, (char *)notepad::viewbuf::defaultText, len);
 
-  TextBuf = (char *)malloc(sizeof(char) * (len + 1));
-  memset(TextBuf, 0, sizeof(char) * (len + 1));
-  if (TextBuf == NULL)
-  {
-    fclose(TextFile);
-    TextFile = NULL;
-    return;
+    buffer[len] = 0;
+    size = len + 1;
+    stringsCount = 1;
+    return 0;
   }
-  fread((void *)TextBuf, len, 1, TextFile);
-  TextBufSize = strlen(TextBuf);
-  LinesCount = len - TextBufSize + 1;
-  fclose(TextFile);
-  TextFile = NULL;
+  /* Calculate file length */
+  fseek(textFile, 0, SEEK_END);
+  len = ftell(textFile);
+  fseek(textFile, 0, SEEK_SET);
+
+  /* Allocate memory and read text */
+  buffer = (unsigned char *)malloc(sizeof(char) * (len + 1));
+  memset(buffer, 0, sizeof(char) * (len + 1));
+  if (buffer == NULL)
+  {
+    fclose(textFile);
+    textFile = NULL;
+    return 0;
+  }
+  fread((void *)buffer, len, 1, textFile);
+  size = strlen((char *)buffer);
+  
+  stringsCount = len - size + 1;
+  fclose(textFile);
+
+  /* Calculate maximum string length */
+  unsigned char *ptr1, *ptr2;
+
+  ptr1 = Begin();
+  ptr2 = End();
+  maxStringLength = ptr2 - ptr1;
+  while (HaveStrings())
+  {
+    ptr1 = Next();
+    ptr2 = End();
+    if ((ptr2 - ptr1) > (int)maxStringLength)
+      maxStringLength = ptr2 - ptr1;
+  }
+  return 1;
 }
 
-/* Get pointer to begin of first string for output function */
-char * task2::viewbuf::GetFirstBeginPtr( void )
+/* Deinitialite buffer function */
+void notepad::viewbuf::Close( void )
 {
-  cur_index = next_index = shift_index;
-  return GetBeginPtr();
+  if (buffer)
+  {
+    free(buffer);
+    buffer = NULL;
+    size = 0;
+  }
 }
 
-/* Get pointer to begin of next string for output function */
-char * task2::viewbuf::GetBeginPtr( void )
+/* Get pointer to begin of first string of 'visible' buffer function */
+unsigned char * notepad::viewbuf::Begin( void )
 {
-  cur_index = next_index;
-  while (TextBuf[next_index] != '\n' && next_index < TextBufSize - 1)
-    next_index++;
-  if ((next_index - cur_index) > shift_x)
-    return TextBuf + cur_index + shift_x;
+  nextIndex = beginIndex;
+  return Next();
+}
+
+/* Get pointer to begin of next string of 'visible' buffer function */
+unsigned char * notepad::viewbuf::Next( void )
+{
+  currentIndex = nextIndex;
+  while (buffer[nextIndex] != '\n' && nextIndex < size - 1)
+    nextIndex++;
+  if ((nextIndex - currentIndex) > currentCharacter)
+    return buffer + currentIndex + currentCharacter;
   else
     return NULL;
 }
 
-/* Get pointer to end of next string for output function */
-char * task2::viewbuf::GetEndPtr( void )
+/* Get pointer to end of string of 'visible' buffer function */
+unsigned char * notepad::viewbuf::End( void )
 {
-  if ((next_index++ - cur_index) > shift_x)
-    return TextBuf + next_index - 1;
+  if ((nextIndex++ - currentIndex) > currentCharacter)
+    return buffer + nextIndex - 1;
   else
     return NULL;
 }
 
-/* Check avalibility of strings to output function */
-bool task2::viewbuf::HaveStrings( void ) const
+void notepad::viewbuf::ShiftX( long shift )
 {
-  return (cur_index < TextBufSize);
-}
-
-/* Horizontal shift text function */
-void task2::viewbuf::ShiftX( long shift )
-{
-  if ((shift_x += shift) < 0 || shift_x >= TextBufSize)
-    shift_x -= shift;
+  if (((long)currentCharacter + shift) < 0)
+  {
+    shift = -(long)currentCharacter;
+    currentCharacter = 0;
+    return;
+  }
+  else if ((currentCharacter + shift) >= maxStringLength - 2)
+  {
+    shift = maxStringLength - currentCharacter;
+    currentCharacter = maxStringLength - 2;
+    return;
+  }
+  currentCharacter += shift;
 }
 
 /* Vertical shift text function */
-void task2::viewbuf::ShiftY( long shift )
+void notepad::viewbuf::ShiftY( long shift )
 {
-  if (((long)shift_y + shift) < 0)
+  if (((long)currentString + shift) < 0)
   {
-    shift = -(long)shift_y;
-    shift_y = 0;
+    shift = -(long)currentString;
+    currentString = 0;
   }
-  else if ((shift_y + shift) >= LinesCount - 3)
+  else if ((currentString + shift) >= stringsCount - 2)
   {
-    shift = LinesCount - 3 - shift_y;
-    shift_y = LinesCount - 3;
+    shift = stringsCount - 2 - currentString;
+    currentString = stringsCount - 2;
   }
   else
-    shift_y += shift;
+    currentString += shift;
 
   while (shift-- > 0)
   {
-    while (TextBuf[shift_index] != '\n' && TextBuf[shift_index] != 0)
-      shift_index++;
-    ++shift_index;
+    while (buffer[beginIndex] != '\n' && beginIndex < size)
+      beginIndex++;
+    ++beginIndex;
   }
   ++shift;
   while (shift++ < 0)
   {
-    shift_index -= 2;
-    while (TextBuf[shift_index] != '\n' && shift_index > 0)
-      shift_index--;
-    shift_index += shift_index != 0;
+    beginIndex -= 2;
+    while (buffer[beginIndex] != '\n' && beginIndex > 0)
+      beginIndex--;
+    beginIndex += beginIndex != 0;
   }
 }

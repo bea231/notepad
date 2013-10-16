@@ -1,38 +1,84 @@
-/* Sergeev Artemiy, 33602 (3057/2) */
+/* Sergeev Artemiy, 33601/2 (3057/2) */
 
 #ifndef _VIEWBUF_H_
 #define _VIEWBUF_H_
 
 #include <stdio.h>
 
-#define _FILE_ERR_TEXT "File not found"
-
-namespace task2
+/* Project namespace */
+namespace notepad
 {
+  /* Specialized text buffer class */
   class viewbuf
   {
   private:
-    FILE *TextFile;
-    char *TextBuf;
-    unsigned long shift_x, shift_y,
-                  shift_index,
-                  cur_index,
-                  next_index,
-                  LinesCount,
-                  TextBufSize;
+    static const unsigned char defaultText[];
+
+    unsigned char *buffer;          // text buffer
+    unsigned long size,             // count of charater in buffer
+                  currentString,    // number of current first string in buffer
+                  currentCharacter, // number of current first character in string
+                  beginIndex,       // index of first string
+                  currentIndex,     // index of 'currentString'
+                  nextIndex,        // index of string after 'currentString'
+                  stringsCount,     // count of strings in 'buffer' ('\n' is stop-character)
+                  maxStringLength;
   public:
-    viewbuf( char *FileName = NULL );
-    ~viewbuf( void );
+    viewbuf( void ) : buffer(NULL), size(0), stringsCount(0),
+        currentString(0), currentCharacter(0), currentIndex(0), nextIndex(0), beginIndex(0)
+    {
+    }
 
-    void Init( char *FileName = NULL );
+    ~viewbuf( void ) { Close(); }
 
-    char * GetFirstBeginPtr( void );
-    char * GetBeginPtr( void );
-    char * GetEndPtr( void );
-    bool HaveStrings( void ) const;
-    void ShiftX( long shift = 0 );
-    void ShiftY( long shift = 0 );
+    /* Initialite buffer from file function */
+    int Open( unsigned char *fileName = NULL );
+
+    /* Deinitialite buffer function */
+    void Close( void );
+
+    /* Get pointer to begin of first string of 'visible' buffer function */
+    unsigned char * Begin( void );
+
+    /* Get pointer to begin of next string of 'visible' buffer function */
+    unsigned char * Next( void );
+
+    /* Get pointer to end of string of 'visible' buffer function */
+    unsigned char * End( void );
+
+    /* Check avalibility of strings to output function */
+    bool HaveStrings( void ) const
+    {
+      return (currentIndex < size);
+    }
+
+    /* Horizontal shift text function */
+    void ShiftX( const long shift );
+
+    /* Vertical shift text function */
+    void ShiftY( const long shift );
+
+    /*** GetSmth() functions */ 
+    unsigned long GetStringsCount( void ) const
+    {
+      return stringsCount;
+    }
+
+    unsigned long GetMaxStringLength( void ) const
+    {
+      return maxStringLength;
+    }
+
+    unsigned long GetCurrentString( void ) const
+    {
+      return currentString;
+    }
+
+    unsigned long GetCurrentCharacter( void ) const
+    {
+      return currentCharacter;
+    }
   };
 }
 
-#endif /* _VIEWBUF_H_ */
+#endif /* _VIEWBUF_H_ */ 

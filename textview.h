@@ -1,27 +1,36 @@
-/* Sergeev Artemiy, 33602 (3057/2) */
+/* Sergeev Artemiy, 33601/2 (3057/2) */
 
 #ifndef _TEXTVIEW_H_
 #define _TEXTVIEW_H_
 
-#include <stdio.h>
-#include "win.h"
 #include "viewbuf.h"
+#include "win.h"
 
 /* Project namespace */
-namespace task2
+namespace notepad
 {
-  /* Window class definition */
   class textview : public win
   {
   private:
-    viewbuf Buffer;
-    int LinesInPage;
+    viewbuf buffer;
+    unsigned int textHeight, textWidth,
+                 stringsInPage, charsInPage,
+                 scrollX, scrollY;
   public:
     /* Default class constructor */
-    textview( int CmdShow = SW_SHOWNORMAL, char *CmdLine = NULL, HINSTANCE hInst = NULL, char *WindowName = "Task" );
-    /* Class destructor */
+    textview( int cmdShow = SW_SHOWNORMAL, char *cmdLine = NULL, HINSTANCE hInst = NULL, char *windowName = "Task" );
 
+    /* Class destructor */
     ~textview( void );
+
+    /* Shift window by X-axis */
+    void ShiftX( int shift );
+
+    /* Shift window by Y-axis */
+    void ShiftY( int shift );
+
+    /* Set new position, hide or show scrollbar function */
+    void UpdateScrollBar( void );
 
     /***
      * Virtual functions for window customization
@@ -36,27 +45,24 @@ namespace task2
     /* Change window size handle function */
     virtual void Resize( void );
 
-    /* Erase background handle function */
-    virtual void Erase( HDC hDC );
-
     /* Paint window content function */
-    virtual void Paint( HDC hDC );
+    virtual void Paint( void );
 
-    /* Activate handle function */
-    virtual void Activate( BOOL IsActive );
+    /* Erase background handle function */
+    virtual void Erase( void );
 
-    /* Timer handle function */
-    virtual void Timer( void );
+    /* Keyboard state handle function */
+    virtual void Key(unsigned int vk, bool fDown, int cRepeat, unsigned int flags);
 
-    /* Free CPU time handling function */
-    virtual void Idle( void );
+    /* WM_COMMAND window message handle function */
+    virtual void Command(int id, HWND hwndCtl, unsigned int codeNotify);
 
-    /* Keyboard state function */
-    virtual void Key( unsigned int vk, bool fDown );
+    /* WM_HSCROLL window message handle function */
+    virtual void HScroll(HWND hwndCtl, unsigned int code, int pos);
 
-    /* WM_MOUSEMOVE window message handle function */
-     virtual void Mouse(int x, int y, unsigned int flags);
-  }; /* End of 'win' class */
+    /* WM_VSCROLL window message handle function */
+    virtual void VScroll(HWND hwndCtl, unsigned int code, int pos);
+  };
 }
 
 #endif /* _TEXTVIEW_H_ */
