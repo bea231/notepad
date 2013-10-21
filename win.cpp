@@ -149,6 +149,7 @@ LRESULT notepad::win::WinFunc( unsigned int msg, WPARAM wParam, LPARAM lParam )
   HANDLE_MSG(WM_KEYDOWN, Key);
   HANDLE_MSG(WM_KEYUP, Key);
   HANDLE_MSG(WM_MOUSEMOVE, MouseMove);
+  HANDLE_MSG(WM_MOUSEWHEEL, MouseWheel);
   HANDLE_MSG(WM_COMMAND, Command);
   HANDLE_MSG(WM_VSCROLL, VScroll);
   HANDLE_MSG(WM_HSCROLL, HScroll);

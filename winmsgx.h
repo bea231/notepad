@@ -1,4 +1,4 @@
-/* Sergeev Artemiy, 2057/2 */
+/* Sergeev Artemiy, 33601/2 (3057/2) */
 
 #ifndef _WINMSGX_H_
 #define _WINMSGX_H_

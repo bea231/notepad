@@ -54,6 +54,9 @@ namespace notepad
     /* Keyboard state handle function */
     virtual void Key(unsigned int vk, bool fDown, int cRepeat, unsigned int flags);
 
+    /* WM_MOUSEWHEEL window message handle function */
+    virtual void MouseWheel(int xPos, int yPos, int zDelta, unsigned int fwKeys);
+
     /* WM_COMMAND window message handle function */
     virtual void Command(int id, HWND hwndCtl, unsigned int codeNotify);
 

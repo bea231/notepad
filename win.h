@@ -85,12 +85,6 @@ namespace notepad
     /* WM_TIMER window message handle function */
     void OnTimer( int id );
 
-    /* WM_KEYDOWN window message handle function */
-    void OnKey(unsigned int vk, bool fDown, int cRepeat, unsigned int flags);
-
-    /* WM_MOUSEMOVE window message handle function */
-    void OnMouseMove(int x, int y, unsigned int flags);
-
     /* WM_GETMINMAXINFO window message handle function */
     void OnGetMinMax( MINMAXINFO *MinMaxInfo );
 
@@ -157,6 +151,11 @@ namespace notepad
 
     /* WM_MOUSEMOVE window message handle function */
     virtual void MouseMove(int x, int y, unsigned int flags)
+    {
+    }
+
+    /* WM_MOUSEWHEEL window message handle function */
+    virtual void MouseWheel(int xPos, int yPos, int zDelta, unsigned int fwKeys)
     {
     }
 

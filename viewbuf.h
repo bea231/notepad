@@ -24,7 +24,11 @@ namespace notepad
                   stringsCount,     // count of strings in 'buffer' ('\n' is stop-character)
                   maxStringLength;
   public:
+    unsigned int  breakScrollX,     // Count of characters, which will be displayed in right-side position of scroll bar
+                  breakScrollY;
+
     viewbuf( void ) : buffer(NULL), size(0), stringsCount(0),
+        breakScrollX(15), breakScrollY(2),
         currentString(0), currentCharacter(0), currentIndex(0), nextIndex(0), beginIndex(0)
     {
     }

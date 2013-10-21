@@ -28,7 +28,7 @@ void notepad::textview::Init( void )
   TEXTMETRIC textMetric;
 
   GetTextMetrics(hDC, &textMetric);
-  textHeight = textMetric.tmHeight;
+  textHeight = textMetric.tmHeight + textMetric.tmExternalLeading;
   textWidth = textMetric.tmMaxCharWidth;
   SetMenu(hWnd, LoadMenu(hInstance, (char *)TEXT(IDR_MENU)));
 }
@@ -67,6 +67,19 @@ void notepad::textview::Paint( void )
     ptr2 = buffer.End();
   }
 
+}
+
+/* WM_MOUSEWHEEL window message handle function */
+void notepad::textview::MouseWheel(int xPos, int yPos, int zDelta, unsigned int fwKeys)
+{
+  zDelta = zDelta / WHEEL_DELTA;
+  if (fwKeys == MK_SHIFT)
+  {
+    buffer.ShiftX(-zDelta);
+  }
+  else
+    buffer.ShiftY(-zDelta);
+  UpdateScrollBar();
 }
 
 /* Keyboard state handle function */
@@ -119,7 +132,7 @@ void notepad::textview::Command(int id, HWND hwndCtl, UINT codeNotify)
      ofn.lpstrFilter = "All\0*.*\0Text files\0*.txt\0";
      ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
 
-     if (GetOpenFileName(&ofn) == TRUE)
+     if (GetOpenFileName(&ofn) != FALSE)
      {
        buffer.Close();
        buffer.Open(fileName);
@@ -205,7 +218,7 @@ void notepad::textview::UpdateScrollBar( void )
     scrollInfo.cbSize = sizeof(SCROLLINFO);
     scrollInfo.fMask = SIF_PAGE | SIF_RANGE;
     scrollInfo.nMin = 0;
-    scrollInfo.nMax = buffer.GetStringsCount() + stringsInPage - 3;
+    scrollInfo.nMax = buffer.GetStringsCount() + stringsInPage - buffer.breakScrollY - 1;
     scrollInfo.nPage = stringsInPage;
     SetScrollInfo(hWnd, SB_VERT, &scrollInfo, TRUE);
 
@@ -219,7 +232,7 @@ void notepad::textview::UpdateScrollBar( void )
     ShowScrollBar(hWnd, SB_HORZ, TRUE);
 
     scrollInfo.nMin = 0;
-    scrollInfo.nMax = buffer.GetMaxStringLength() + charsInPage - 3;
+    scrollInfo.nMax = buffer.GetMaxStringLength() + charsInPage - buffer.breakScrollX - 1;
     scrollInfo.nPage = charsInPage;
     SetScrollInfo(hWnd, SB_HORZ, &scrollInfo, TRUE);
 

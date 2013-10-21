@@ -1,3 +1,4 @@
+/* Sergeev Artemiy, 33601/2 (3057/2) */
 //{{NO_DEPENDENCIES}}
 // Microsoft Visual C++ generated include file.
 // Used by notepad.rc
