@@ -105,7 +105,7 @@ void notepad::win::SetFullScreen( bool IsFull )
       SWP_NOOWNERZORDER | SWP_NOREDRAW | SWP_NOSENDCHANGING);
   }
   else
-  {     
+  {
     SetWindowPos(hWnd, HWND_TOP, saveRC.left, saveRC.top, saveRC.right - saveRC.left, saveRC.bottom - saveRC.top,
       SWP_NOOWNERZORDER | SWP_NOSENDCHANGING);
   }
@@ -139,6 +139,7 @@ LRESULT notepad::win::WinFunc( unsigned int msg, WPARAM wParam, LPARAM lParam )
 {
   switch (msg)
   {
+  /* Run specialized macros to convert 'wParam' and 'lParam' for user message process functions */
   HANDLE_MSG(WM_SIZE, OnSize);
   HANDLE_MSG(WM_ACTIVATE, OnActivate);
   HANDLE_MSG(WM_ERASEBKGND, OnEraseBkgnd);
@@ -177,7 +178,7 @@ bool notepad::win::OnCreate( HWND hWnd, CREATESTRUCT *createStruct )
 
 /* WM_DESTROY window message handle function */
 void notepad::win::OnClose( void )
-{  
+{
   KillTimer(hWnd, 1110111);
   ReleaseDC(hWnd, hDC);
   DeleteObject(hBm);
@@ -209,7 +210,7 @@ void notepad::win::OnSize( unsigned int state, int newWidth, int newHeight )
   if (isInit)
     Resize();
   InvalidateRect(hWnd, NULL, FALSE);
-} 
+}
 
 /* WM_ERASEBKGND window message handle function */
 bool notepad::win::OnEraseBkgnd( HDC hDC )
@@ -218,7 +219,7 @@ bool notepad::win::OnEraseBkgnd( HDC hDC )
   if (isInit)
     Erase();
   return FALSE;
-} 
+}
 
 /* WM_PAINT window message handle function */
 void notepad::win::OnPaint( void )
@@ -227,7 +228,7 @@ void notepad::win::OnPaint( void )
   PAINTSTRUCT ps;
   HPEN hOldPen = (HPEN)SelectObject(this->hDC, GetStockObject(NULL_PEN));
   HBRUSH hOldBrush = (HBRUSH)SelectObject(this->hDC, GetStockObject(WHITE_BRUSH));
- 
+
   hDC = BeginPaint(hWnd, &ps);
 
   /* Call user level paint window content function */
@@ -253,7 +254,7 @@ void notepad::win::OnActivate( unsigned int reason, HWND hWndActDeact, bool isMi
 }
 
 /* WM_TIMER window message handle function */
-void notepad::win::OnTimer( int id ) 
+void notepad::win::OnTimer( int id )
 {
   if (id == c_initializationTimer)
   {

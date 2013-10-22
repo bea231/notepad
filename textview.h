@@ -9,13 +9,17 @@
 /* Project namespace */
 namespace notepad
 {
+  /* Window for view text class */
   class textview : public win
   {
   private:
-    viewbuf buffer;
-    unsigned int textHeight, textWidth,
-                 stringsInPage, charsInPage,
-                 scrollX, scrollY;
+    viewbuf buffer;              // Buffer with text to be displayed
+    unsigned int textWidth,      // Average width (in pixels) of one character
+                 textHeight,     // Height (in pixels) of one character
+                 stringsInPage,  // Count of string, which can contains in work window's area
+                 charsInPage,    // Count of characters, which can contains in work window's area
+                 scrollX,        // Current count of scrolls by X-axis
+                 scrollY;        // Current count of scrolls by Y-axis
   public:
     /* Default class constructor */
     textview( int cmdShow = SW_SHOWNORMAL, char *cmdLine = NULL, HINSTANCE hInst = NULL, char *windowName = "Task" );
@@ -23,13 +27,13 @@ namespace notepad
     /* Class destructor */
     ~textview( void );
 
-    /* Shift window by X-axis */
+    /* Shift text in window by X-axis */
     void ShiftX( int shift );
 
-    /* Shift window by Y-axis */
+    /* Shift text in window by Y-axis */
     void ShiftY( int shift );
 
-    /* Set new position, hide or show scrollbar function */
+    /* Hide or show scrollbar and set new scrollbar position function */
     void UpdateScrollBar( void );
 
     /***

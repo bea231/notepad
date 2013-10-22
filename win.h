@@ -16,24 +16,21 @@ namespace notepad
   class win
   {
   private:
-    /* Initialization timer identifier */
-    static const int c_initializationTimer = 11011;
+    static const int c_initializationTimer = 11011;  //  Initialization timer identifier
 
-    /* Initialization flag */
-    bool isInit;
-
-    RECT saveRC;
-
+    bool isInit;   // Initialization flag
+    RECT saveRC;   // Rectangle of non-fullscreen window
   protected:
     /* Window data */
     HWND hWnd;           // Window handle
     HINSTANCE hInstance; // Application instance handle
-    int width, height;   // Window size
+    int width,           // Width of work area
+        height;          // Height of work area
     bool isActive;       // Active flag
     bool isFullScreen;   // Full screen flag
 
-    HDC hDC;
-    HBITMAP hBm;
+    HDC hDC;             // Second buffer device context
+    HBITMAP hBm;         // Second buffer bitmap
   public:
     /* Class constructor */
     win( HINSTANCE hInst = NULL, int cmdShow = SW_SHOWNORMAL );
@@ -47,17 +44,19 @@ namespace notepad
     /* Window handle message (with crack message calls) */
     LRESULT WinFunc( unsigned int msg, WPARAM wParam, LPARAM lParam );
 
-    /* Windowed application running function */
+    /* Run message processing loop function */
     int Run( void );
 
-    /* System exit function */
+    /* Send exit-message to system function */
     void DoExit( void );
 
     /* Set full screen application mode */
     void SetFullScreen( bool isFull );
 
+    /* Get work area width function */
     int GetWidth( void ) const {return width;}
 
+    /* Get work area height function */
     int GetHeight( void ) const {return height;}
 
     /***
@@ -92,37 +91,25 @@ namespace notepad
      * Virtual functions for window customization
      ***/
 
-    /* Initialization function.
-     * ARGUMENTS: None.
-     * RETURNS: None.
-     */
+    /* Initialization function */
     virtual void Init( void )
     {
-    } /* End of 'Init' function */
+    }
 
-    /* Deinitialization function.
-     * ARGUMENTS: None.
-     * RETURNS: None.
-     */
+    /* Deinitialization window function */
     virtual void Close( void )
     {
-    } /* End of 'Close' function */
+    }
 
-    /* Change window size handle function.
-     * ARGUMENTS: None.
-     * RETURNS: None.
-     */
+    /* Change window size handle function */
     virtual void Resize( void )
     {
-    } /* End of 'Resize' function */
+    }
 
-    /* Erase background handle function.
-     * ARGUMENTS: None.
-     * RETURNS: None.
-     */
+    /* Erase background handle function */
     virtual void Erase( void )
     {
-    } /* End of 'Erase' function */
+    }
 
     /* Paint window content function */
     virtual void Paint( void )
@@ -133,7 +120,7 @@ namespace notepad
     virtual void Activate( bool isActive )
     {
     }
-    
+
     /* Timer handle function */
     virtual void Timer( int Id )
     {

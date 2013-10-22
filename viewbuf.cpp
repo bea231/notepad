@@ -12,15 +12,18 @@ int notepad::viewbuf::Open( unsigned char *fileName )
 {
   FILE *textFile = NULL;
 
-  buffer = NULL;  
+  /* Set values for default values */
+  buffer = NULL;
   size = stringsCount = currentString = currentCharacter = currentIndex = nextIndex = beginIndex = 0;
 
+  /* Open file */
   if (fileName != NULL)
-    textFile = fopen((char *)fileName, "rt");
+    textFile = fopen((char *)fileName, "rb");
+  /* Check for errors */
   if (textFile == NULL)
   {
-    /* Default text value */
-    maxStringLength = size = strlen((char *)notepad::viewbuf::defaultText);    
+    /* Set buffer as default text */
+    maxStringLength = size = strlen((char *)notepad::viewbuf::defaultText);
     buffer = (unsigned char *)malloc(sizeof(unsigned char) * (size + 1));
     strncpy((char *)buffer, (char *)notepad::viewbuf::defaultText, size);
 
@@ -29,6 +32,7 @@ int notepad::viewbuf::Open( unsigned char *fileName )
     stringsCount = 1;
     return 0;
   }
+
   /* Calculate file length */
   fseek(textFile, 0, SEEK_END);
   size = ftell(textFile);
@@ -42,25 +46,24 @@ int notepad::viewbuf::Open( unsigned char *fileName )
     fclose(textFile);
     textFile = NULL;
     return 0;
-  }  
+  }
+  /* Read text to buffer */
   fread((void *)buffer, size, 1, textFile);
   ++size;
-  for (unsigned long i = 0; i < size; i++)
-    if (buffer[i] == '\n')
-      stringsCount++;
-    
   fclose(textFile);
 
-  /* Calculate maximum string length */
+  /* Calculate maximum string length and calculate count of strings */
   unsigned char *ptr1, *ptr2;
 
   ptr1 = Begin();
   ptr2 = End();
   maxStringLength = ptr2 - ptr1;
+  stringsCount = 1;
   while (HaveStrings())
   {
     ptr1 = Next();
     ptr2 = End();
+    stringsCount++;
     if ((ptr2 - ptr1) > (int)maxStringLength)
       maxStringLength = ptr2 - ptr1;
   }
@@ -89,8 +92,10 @@ unsigned char * notepad::viewbuf::Begin( void )
 unsigned char * notepad::viewbuf::Next( void )
 {
   currentIndex = nextIndex;
+  /* Search break-character */
   while (buffer[nextIndex] != '\n' && nextIndex < size - 1)
     nextIndex++;
+  /* Calculate pointer for return */
   if ((nextIndex - currentIndex) > currentCharacter)
     return buffer + currentIndex + currentCharacter;
   else
@@ -101,11 +106,12 @@ unsigned char * notepad::viewbuf::Next( void )
 unsigned char * notepad::viewbuf::End( void )
 {
   if ((nextIndex++ - currentIndex) > currentCharacter)
-    return buffer + nextIndex - 1;
+    return buffer + nextIndex - 2;
   else
     return NULL;
 }
 
+/* Horizontal shift text function */
 void notepad::viewbuf::ShiftX( long shift )
 {
   if (((long)currentCharacter + shift) < 0)
@@ -126,6 +132,7 @@ void notepad::viewbuf::ShiftX( long shift )
 /* Vertical shift text function */
 void notepad::viewbuf::ShiftY( long shift )
 {
+  /* Recalculate shift */
   if (((long)currentString + shift) < 0)
   {
     shift = -(long)currentString;
